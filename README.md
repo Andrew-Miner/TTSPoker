@@ -8,4 +8,4 @@ Notes:
   - Blinder contains all of the blind tracking/placing code
   - ChipCounter contains the code that calculates pot value
   - Global contains events
-  
+  - For Reference: https://api.tabletopsimulator.com/
