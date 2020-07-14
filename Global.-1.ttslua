@@ -1,0 +1,34 @@
+--[[ Lua code. See documentation: https://api.tabletopsimulator.com/ --]]
+#include !/ChipCounter
+#include !/Constants
+
+chipCounters = {
+    [CHIP_ZONE1_GUID] = ChipCounter:new(CHIP_ZONE1_GUID,
+                                        TEXT_ZONE1_GUID)
+}
+
+--[[ The onLoad event is called after the game save finishes loading. --]]
+function onLoad()
+    --[[ print('onLoad!') --]]
+end
+
+--[[ The onUpdate event is called once per frame. --]]
+function onUpdate()
+    --[[ print('onUpdate loop!') --]]
+end
+
+function onObjectEnterScriptingZone(zone, obj)
+    local counter = chipCounters[zone.getGUID()]
+    if counter == nil then
+        return false
+    end
+    counter:zoneEntered(obj)
+end
+
+function onObjectLeaveScriptingZone(zone, obj)
+    local counter = chipCounters[zone.getGUID()]
+    if counter == nil then
+        return false
+    end
+    counter:zoneLeft(obj)
+end

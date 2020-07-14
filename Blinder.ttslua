@@ -1,0 +1,110 @@
+Blinder = {
+    dealerChip = 'White',
+    chipGUID = '',
+    smallBlind = 0.25,
+    bigBlind = 0.50
+}
+
+function Blinder:new(dealerChipGUID, smallBlind, bigBlind)
+    local o = {}
+    setmetatable(o, self)
+    self.__index = self
+
+    local players = Player.getPlayers()
+    local count = 0
+    for _,p in ipairs(players) do count = _ end
+    o.dealerChip = players[math.random(count)].color
+    printToAll('Selected ' .. Player[o.dealerChip].steam_name .. ' for Dealer Chip', o.dealerChip)
+
+    o.chipGUID = dealerChipGUID
+
+    return o
+end
+
+-- if leftOf is dealerChip return
+function Blinder:nextBlind()
+    self.dealerChip = getLeftOf(self.dealerChip)
+    local dChip = getObjectFromGUID(self.chipGUID)
+    local colorData = _G['c' .. self.dealerChip]
+    dChip.setPositionSmooth(colorData.dChipPos, false, true)
+
+    local smallBlind = getLeftOf(self.dealerChip)
+    --local smallDue = self.smallBlind
+    local smallDue = self:placeChips(smallBlind, self.smallBlind)
+
+    local bigBlind = getLeftOf(smallBlind)
+    --local bigDue = self.bigBlind
+    local bigDue = self:placeChips(bigBlind, self.bigBlind)
+
+    if smallDue > 0 then
+        printToAll('Error: ' ..
+                    Player[smallBlind].steam_name ..
+                    ' owes $' .. string.format("%.2f", smallDue) ..
+                    ' for small blind!', {0.9, 0, 0})
+    end
+
+    if bigDue > 0 then
+        printToAll('Error: ' ..
+                   Player[bigBlind].steam_name ..
+                   ' owes $' .. string.format("%.2f", bigDue) ..
+                   ' for big blind!', {0.9, 0, 0})
+    end
+end
+
+function Blinder:parseValue(chipObject)
+    local name = string.sub(chipObject.getName(), 2)
+    local val = tonumber(name)
+    return val
+end
+
+-- need to check if it will pick apart a stack of only 2 for bb
+function Blinder:placeChips(playerColor, amount)
+    local colorData = _G['c' .. playerColor]
+    local amountDue = amount
+    for _,zone in ipairs(colorData.zones) do
+        local zoneObj = getObjectFromGUID(zone)
+        if zoneObj == nil then
+            return -1
+        end
+
+        local objects = zoneObj.getObjects()
+        if objects == nil then
+            return false
+        end
+
+        for _,obj in pairs(objects) do
+            local tag = obj.tag
+            if tag == 'Chip' then
+                local val = self:parseValue(obj)
+                if val <= amountDue then
+                    if obj.name == 'Custom_Model_Stack' then
+                        local wait = 0
+                        local count = obj.getQuantity()
+                        repeat
+                            Wait.time(function()
+                                obj.takeObject({
+                                    position = colorData.blindPos,
+                                    top = true,
+                                    smooth = true,
+                                    rotation = {0,0,0}
+                                })
+                            end, wait)
+                            amountDue = amountDue - val
+                            wait = wait + 1
+                            count = count - 1
+                        until(count < 2 or val < amountDue or amountDue == 0)
+                    else
+                        Wait.time(function()
+                            obj.setPositionSmooth(colorData.blindPos, false, true)
+                        end, (_ - 1))
+                        amountDue = amountDue - val
+                    end
+                end
+                if amountDue == 0 then
+                    return 0
+                end
+            end
+        end
+    end
+    return amountDue
+end

@@ -1,0 +1,93 @@
+
+
+function getLeftOf(playerColor)
+    if playerColor == nil then
+        return nil
+    end
+
+    local next = playerColor
+    repeat
+        next = _G['c' .. next].leftOf
+    until(Player[next].seated == true or next == playerColor)
+    return next
+end
+
+function getRightOf(playerColor)
+    local next = playerColor
+    repeat
+        next = _G['c' .. next].rightOf
+    until(Player[next].seated == true or next == playerColor)
+    return next
+end
+
+
+ColorData = {
+    leftOf = '',
+    rightOf = '',
+    dChipPos = {0,0,0},
+    blindPos = {0,0,0},
+    zones = { },
+}
+
+function ColorData:new(rightOf, leftOf, dChipPos, blindPos, zones)
+    local o = {}
+    setmetatable(o, self)
+    self.__index = self
+
+    o.rightOf = rightOf
+    o.leftOf = leftOf
+    o.dChipPos = dChipPos
+    o.blindPos = blindPos
+    o.zones = zones
+
+    return o
+end
+
+--colorData = _G['c' .. player.color]
+cWhite = ColorData:new('Brown', 'Red',
+                       {-21.24, 0.96, -6.05},
+                       {-21.12, 2.00, -3.24},
+                       {'665f7e','3e2d46', 'e692b8'})
+
+cRed = ColorData:new('White', 'Orange',
+                    {-26.64, 0.96, -1.02},
+                    {-23.76, 2.00, 1.31},
+                    {'b82f44','6f45bf'})
+
+cOrange = ColorData:new('Red', 'Yellow',
+                        {-24.44, 0.96, 4.77},
+                        {-19.04, 2.00, 4.29},
+                        {'9f596e','d79948'})
+
+cYellow = ColorData:new('Orange', 'Green',
+                        {-11.40, 0.96, 6.89},
+                        {-7.78, 2.00, 4.59}, {'5390e7'})
+
+cGreen= ColorData:new('Yellow', 'Blue',
+                      {2.15, 0.96, 6.89},
+                      {7.21, 2.00, 4.51}, {'b13319'})
+
+cBlue = ColorData:new('Green', 'Purple',
+                      {16.05, 0.96, 6.89},
+                      {18.70, 2.00, 4.38},
+                      {'95f447', '0002b8'})
+
+cPurple = ColorData:new('Blue', 'Pink',
+                        {24.28, 0.96, 4.72},
+                        {23.66, 2.00, 1.16},
+                        {'5248a4', '3168d2'})
+
+cPink = ColorData:new('Purple', 'Teal',
+                     {26.54, 0.96, -1.99},
+                     {21.58, 2.00, -2.87},
+                     {'13344c','987b3b', '106128'})
+
+cTeal = ColorData:new('Pink', 'Brown',
+                      {18.40, 0.96, -6.70},
+                      {12.48, 2.00, -4.47},
+                      {'7c6d9b'})
+
+cBrown = ColorData:new('Teal', 'White',
+                       {-9.12, 0.96, -6.90},
+                       {-12.68, 2.00, -4.48},
+                       {'0cda21'})

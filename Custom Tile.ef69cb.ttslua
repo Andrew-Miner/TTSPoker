@@ -1,0 +1,134 @@
+--[[ Lua code. See documentation: https://api.tabletopsimulator.com/ --]]
+#include !/Constants
+#include !/Dealer
+#include !/Blinder
+#include !/ColorData
+
+--[[ The onLoad event is called after the game save finishes loading. --]]
+dataTable = { currentPhase = 0, currentDealer = 'White' }
+dealer = Shuffler:new(DRAW_ZONE, DISCARD_ZONE)
+blinder = Blinder:new(DEALER_CHIP_GUID, 0.25, 0.50)
+
+phaseFunctions = {
+    [1] = dealFlop,
+    [2] = dealTurn,
+    [3] = dealRiver
+}
+
+function onLoad(save_state)
+    self.interactable = false
+    createDealButton()
+    createNextButton()
+    createFoldButton()
+    dealer:init()
+
+    if save_state ~= '' and
+       save_state ~= 'null' and
+       save_state ~= nil then
+        dataTable = JSON.decode(save_state)
+        blinder.dealerChip = dataTable.currentDealer
+    end
+
+    blinder.dealerChip = 'Blue'
+end
+
+function onSave()
+    dataTable.currentDealer = blinder.dealerChip
+    savedData = JSON.encode(dataTable)
+    return savedData
+end
+
+--[[ The onUpdate event is called once per frame. --]]
+function onUpdate()
+    --[[ print('onUpdate loop!') --]]
+end
+
+
+function createDealButton()
+    self.createButton({
+        label="Deal", click_function="dealCards",
+        function_owner=self, tooltip="Deal A New Hand",
+        position={1.5,0,-0.70}, rotation={0,180,0},
+        height=300, width=500, font_size=120
+    })
+end
+
+function createNextButton()
+    self.createButton({
+        label="Next", click_function="nextPhase",
+        function_owner=self, tooltip="Deal The Next Phase",
+        position={-1.5,0,-0.70}, rotation={0,180,0},
+        height=300, width=500, font_size=120
+    })
+end
+
+function createFoldButton()
+    self.createButton({
+        label="Fold", click_function="foldCards",
+        function_owner=self, tooltip="Fold Your Hand",
+        position={0,0,1.70}, rotation={0,180,0},
+        height=350, width=2000, font_size=300
+    })
+end
+
+function foldCards(obj, playerColor)
+    local player = Player[playerColor]
+    local hand = player.getHandObjects()
+
+    for _,card in ipairs(hand) do
+        Wait.time(function()
+            dealer:discardCard(card)
+        end, _/4)
+    end
+end
+
+function dealCards()
+    dataTable.currentPhase = 0
+    blinder:nextBlind()
+    dealer:dealCards(getLeftOf(blinder.dealerChip))
+end
+
+function nextPhase()
+    dataTable.currentPhase = dataTable.currentPhase + 1
+    if dataTable.currentPhase == 1 then
+        dealer:killCard(dealFlop, 1)
+    elseif dataTable.currentPhase == 2 then
+        dealer:killCard(dealTurn, 1)
+    elseif dataTable.currentPhase == 3 then
+        dealer:killCard(dealRiver, 1)
+    end
+end
+
+function dealFlop()
+    local flop = {}
+    dealer:dealCard(FLOP_POS[1], CARD_ROT, function(card)
+        flop[1] = card
+    end, 1)
+    dealer:dealCard(FLOP_POS[2], CARD_ROT, function(card)
+        flop[2] = card
+    end, 2)
+    dealer:dealCard(FLOP_POS[3], CARD_ROT, function(card)
+        flop[3] = card
+        Wait.time(function()
+            flop[1].flip()
+            Wait.time(function()
+                flop[2].flip()
+                Wait.time(function()
+                    flop[3].flip()
+                end, 0.2)
+            end, 0.2)
+        end, 0.2)
+    end, 3)
+end
+
+function dealTurn()
+    dealer:dealCard(TURN_POS, CARD_ROT, function(card)
+        card.flip()
+    end)
+end
+
+function dealRiver()
+    dealer:dealCard(RIVER_POS, CARD_ROT, function(card)
+        card.flip()
+    end)
+end

@@ -1,0 +1,69 @@
+ChipCounter = {
+    zoneGUID = nil,
+    textGUID = nil
+}
+
+function ChipCounter:new(zoneGUID, textGUID)
+    local o = {}
+    setmetatable(o, self)
+    self.__index = self
+
+    o.zoneGUID = zoneGUID
+    o.textGUID = textGUID
+
+    return o
+end
+
+function ChipCounter:zoneEntered(obj)
+    if obj == nil or obj.tag ~= 'Chip' then
+        return false
+    end
+
+    local val = self:getCount() + self:getChipValue(obj)
+    self:setText('$' .. string.format("%.2f", val))
+end
+
+function ChipCounter:zoneLeft(obj)
+    if obj == nil or obj.tag ~= 'Chip' then
+        return false
+    end
+
+    local val = self:getCount()
+    self:setText('$' .. string.format("%.2f", val))
+end
+
+function ChipCounter:getCount()
+    local zoneObj = getObjectFromGUID(self.zoneGUID)
+    if zoneObj == nil then
+        return -1
+    end
+
+    local objects = zoneObj.getObjects()
+    if objects == nil then
+        return false
+    end
+
+    local val = 0
+    for _,obj in pairs(objects) do
+        local tag = obj.tag
+        if tag == 'Chip' then
+            val = val + self:getChipValue(obj)
+        end
+    end
+
+    return val
+end
+
+function ChipCounter:setText(str)
+    local text = getObjectFromGUID(self.textGUID)
+    text.TextTool.setValue(str)
+end
+
+function ChipCounter:getChipValue(chipObject)
+    local name = string.sub(chipObject.getName(), 2)
+    local val = tonumber(name)
+    if chipObject.name == 'Custom_Model_Stack' then
+        val = val * chipObject.getQuantity()
+    end
+    return val
+end

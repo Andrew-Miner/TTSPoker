@@ -1,0 +1,24 @@
+
+CHIP_ZONE1_GUID = 'c80182'
+TEXT_ZONE1_GUID = '8b49ce'
+
+DRAW_ZONE = '60472b'
+DISCARD_ZONE = '0f5a33'
+
+DISCARD_POS = {-9.13, 1.07, -1.97}
+DISCARD_POS_HIGH = {-9.13, 1.2, -1.97}
+DISCARD_ROT = {0.00, 90.00, 180.00}
+DRAW_POS = {-0.04, 1.32, 3.59}
+
+CARD_ROT = {0.00, 0.00, 180.00}
+
+FLOP_POS = {
+    [1] = {5.52,0.97,-1.97},
+    [2] = {2.80, 0.97, -1.97},
+    [3] = {-0.05, 0.97, -1.97},
+}
+
+TURN_POS = {-2.80, 0.97, -1.97}
+RIVER_POS = {-5.60, 0.97, -1.97}
+
+DEALER_CHIP_GUID = '4ba445'

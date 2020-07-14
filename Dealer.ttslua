@@ -1,0 +1,214 @@
+--#include Zones
+--#include Utils
+
+SHUFFLE_DELAY = 0.25
+
+Shuffler = {
+    drawZGUID = nil,
+    drawZone = nil,
+    discardZGUID = nil,
+    discardZone = nil
+}
+
+function Shuffler:new(drawZoneGUID, discardZoneGUID)
+    local o = {}
+    setmetatable(o, self)
+    self.__index = self
+
+    o.drawZGUID = drawZoneGUID
+    o.discardZGUID = discardZoneGUID
+
+    o:init()
+
+    return o
+end
+
+function Shuffler:init()
+    self.drawZone = getObjectFromGUID(self.drawZGUID)
+    self.discardZone = getObjectFromGUID(self.discardZGUID)
+end
+
+function Shuffler:dealCards(startColor)
+    self:clearCards()
+    self:spawnCards(function()
+        local cards = self:getCards()
+        local delay = self:halfDeal(cards, startColor)
+        Wait.time(function()
+            self:halfDeal(cards, startColor)
+        end, delay)
+    end)
+    return true
+end
+
+function Shuffler:halfDeal(cards, startColor)
+    local time = 0
+    local player = startColor
+
+    repeat
+        if time == 0 then
+            cards.deal(1, player)
+        else
+            local p = player
+            Wait.time(function()
+                cards.deal(1, p)
+            end, time)
+        end
+        time = time + SHUFFLE_DELAY
+        player = getLeftOf(player)
+    until(player == startColor)
+
+    return time
+end
+
+function Shuffler:clearCards()
+    local table = getAllObjects()
+    for key,value in pairs(table) do
+        if value.tag == 'Card' or value.tag == 'Deck' then
+            destroyObject(value)
+        end
+    end
+end
+
+function Shuffler:spawnCards(callback)
+    spawnObject({
+        type = 'Deck',
+        position = {-0.04, 1.32, 3.59},
+        scale = {1.00, 1.00, 1.00},
+        rotation = {0.00, 0.00, 180},
+        callback_function = function(obj)
+            deckSpawnCB(obj, callback)
+        end
+    })
+end
+
+function deckSpawnCB(deck, callback)
+    deck.setLock(true)
+    deck.shuffle()
+    Wait.time(function() callback() end, 0.5)
+end
+
+function Shuffler:killCard(callback, delay)
+    self:dealCard(DISCARD_POS_HIGH,
+                  DISCARD_ROT,
+                  callback, delay)
+end
+
+function Shuffler:dealCard(pos, rot, callback, delay)
+    if delay == nil then
+        delay = 0.5
+    end
+    
+    local cards = self:getCards()
+    cards.takeObject({
+        position = pos,
+        rotation = rot,
+        top = true,
+        smooth = true,
+        callback_function = function(obj)
+            Wait.time(function() callback(obj) end, delay)
+        end
+    })
+end
+
+function Shuffler:drawTileEmpty()
+    if self.drawZone == nil then
+        self:init()
+    end
+
+    for _,card in ipairs(self.drawZone.getObjects()) do
+        if card.tag == 'Card' or card.tag == 'Deck' then
+            return false
+        end
+    end
+    return true
+end
+
+function Shuffler:getCards()
+    if self.drawZone == nil then
+        self:init()
+    end
+
+    for _,card in ipairs(self.drawZone.getObjects()) do
+        if card.tag == 'Card' or card.tag == 'Deck' then
+            return card
+        end
+    end
+    return nil
+end
+
+function Shuffler:getDiscards()
+    if self.discardZone == nil then
+        self:init()
+    end
+
+    for _,card in ipairs(self.discardZone.getObjects()) do
+        if card.tag == 'Card' or card.tag == 'Deck' then
+            return card
+        end
+    end
+    return nil
+end
+
+function Shuffler:reshuffle()
+    if self.discardZone == nil then
+        self:init()
+    end
+
+    local deck = nil
+    for _,obj in ipairs(self.discardZone.getObjects()) do
+        if obj.tag == 'Deck' then
+            deck = obj
+            break
+        end
+    end
+
+    if deck ~= nil then
+        deck.flip()
+        deck.setName('Cards')
+        deck.setPositionSmooth(CONSTANTS.drawPos, false, false)
+        Wait.time(function() deck.shuffle() end, 0.5)
+    end
+end
+
+function Shuffler:discardCard(card)
+    if card == nil then
+        return false
+    end
+    if card.is_face_down ~= true then
+        card.flip()
+        Wait.time(function()
+            self:addToDiscard(card)
+        end, 0.5)
+    else
+        self:addToDiscard(card)
+    end
+end
+
+function Shuffler:addToDiscard(card)
+    local discards = self:getDiscards()
+    if discards ~= nil then
+        discards.putObject(card)
+    else
+        card.setRotation(DISCARD_ROT)
+        card.setPosition(DISCARD_POS_HIGH)
+    end
+end
+
+function Shuffler:isDiscarded(discardCard)
+    if self.discardZone == nil then
+        self:init()
+    end
+
+    for _,card in ipairs(self.discardZone.getObjects()) do
+        if card.getGUID() == discardCard.getGUID() then
+            return true
+        elseif card.tag == 'Deck' then
+            for _,c in ipairs(card.getObjects()) do
+                if c.guid == discardCard.getGUID() then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
